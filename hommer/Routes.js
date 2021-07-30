@@ -14,24 +14,55 @@ import DashBoard from './src/components/DashBoard';
 import { LoginContext } from './App';
 import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { server, storageKey } from './src/other/vars';
+import { server, storageKey, storageHome, storageUser } from './src/other/vars';
 import { routes } from './src/other/routes';
-import {Text} from 'react-native'
+import { useNavigation } from '@react-navigation/native';
+
 
 const Stack = createStackNavigator();
 
 
 
 export default function Routes() {
-    const [ logged, setLogged ] = useState(null)
+    const [ logged, setLogged ] = useState(null);
+    const [homeCode, setHomeCode] = useState(null)
+    const [ userId, setUserId ] = useState(null)
+    // const navigation = useNavigation();
+
+    const asyncSetItem = async(key, value) => {
+        await AsyncStorage.setItem(key, value) 
+    }
 
     const logIn = (login, password) => {
         console.log(login, password)
         axios.post( `${server}/${routes.login}`, {login: login, pass: password} )
         .then( res => {
             console.log(res.data)
-            if(res.data){
-                setLogged( res.data )
+            if(res.data[0]){
+                // if( res.data[1] !== null ){
+                //     AsyncStorage.setItem( storageHome, JSON.stringify( res.data[1] ) )
+                //     setHasHome( true )
+                // }
+                // AsyncStorage.setItem( storageUser, res.data[2] )
+                // setLogged( res.data[0] )
+               if( res.data[1] !== null ){
+                   asyncSetItem( storageHome, JSON.stringify(res.data[1]) )
+                   .then( re =>  {
+                    asyncSetItem( storageKey, res.data[2] )
+                    .then( re => {
+                        setLogged(true)
+                        setHomeCode( res.data[1] )
+                        setUserId(res.data[2])
+                    } )
+                   } )
+               }else{
+                asyncSetItem(storageUser, res.data[2])
+                .then( re =>{
+                    setLogged( res.data[0] )
+                    setHomeCode( res.data[1] )
+                        setUserId(res.data[2])
+                }  )
+               }
             }else{
                 console.log('cos poszlo nie tak')
             }
@@ -39,78 +70,77 @@ export default function Routes() {
         .catch( err => console.log(err) )
     }
     const logOut = () => {
-        
-                axios.get( `${server}/${routes.logout}` )
-                .then( res =>   {
-                    AsyncStorage.setItem( storageKey, JSON.stringify(false) )
+        asyncSetItem(storageKey, JSON.stringify(null))
+        .then(re => {
+                asyncSetItem( storageHome, null )
+                .then( ree => {
                     setLogged(false)
+                    setHomeCode(null)
+            })
+        })  
+       console.log('logging out')
+    }
+    const register = (log, pass, email) => {
+                axios.post( `${server}/${routes.register}`, {login: log, pass: pass, email: email } )
+                .then( res =>   {
+                    if(res.data){
+                        // async function settingLogin (){
+                        //     await setLogged(false)
+                        // }
+                        // settingLogin.then( res => {
+                        //     navigation.navigate(navs.login)
+                        // } )
+                        setLogged(false)
+                    }
+                } )
+                .then( re => {
+                    
+                        // navigation.navigate(navs.login)
+                        console.log(logged)
+                    
                 } )
                 .catch( err => console.log(err) )
           
-       console.log('logging out')
+       console.log('register')
+    }
+    const setHomeFunc = (code) => {
+        asyncSetItem( storageHome, code )
+        .then( res => {
+            setHomeCode(code)
+        } )
     }
 
     const getData = async () => {
         try{
           const data = await AsyncStorage.getItem(storageKey)
           console.log('getting data')
-          if( data !== null ){
-            setLogged( JSON.parse(data) )
+          if( JSON.parse(data) !== null ){
+            setLogged( true )
           }else{
-              storeData()
+              setLogged(false)
           }
         }catch(e){
             console.log(e)
         }
       }
-    const storeData = (  ) => {
-        console.log('setting data')
-            axios.get(`${server}/${routes.isLogged}`)
-            .then( res => {
-                 AsyncStorage.setItem( storageKey, JSON.stringify(res.data) )
-                    setLogged(res.data)
-            } )
-            .catch( err=> console.log(err) )
-    }
   useEffect(() => {
         if( logged == null ){
             console.log('is null!')
             getData()
         }
     })
-
-  
-//   if( logged == null ){
-//     return(
-//       <Text> hihi hoho </Text>
-//     )
-//   }
-    // if( logged == null ){
-    //     axios.get(`${server}/${routes.isLogged}`)
-    //     .then( res => {
-    //              setLogged( res.data )
-    //          } )
-    //       .catch( err=> console.log('error screen') )
-    // }
-
-    const homeComponent = () => {
-        return(
-            <DashBoard logOut={logOut} />
-        )
-    }
-
   return (
-     <LoginContext.Provider value={{ val: logged, logIn: logIn, logOut: logOut }} >
-        <Stack.Navigator initialRouteName={navs.welcome || navs.welcome}   >
-           
+     <LoginContext.Provider value={{ val: logged, logIn: logIn, logOut: logOut, register: register,homeCode: homeCode, setHome: setHomeFunc, userId: userId  }} >
+        <Stack.Navigator initialRouteName={navs.welcome }   >
+                
                 { logged ? 
                     <>
-                    <Stack.Screen name={navs.home} component={ DashBoard } /> 
-                    <Stack.Screen name={navs.callendar} component={ Callendar } />
-                    <Stack.Screen name={navs.remind} component={ RemindTemplate } />
-                    <Stack.Screen name={navs.shoppingList} component={ ShoppingList } />
-                    <Stack.Screen name={navs.tasks} component={ Tasks } />
-                    <Stack.Screen name={navs.error} component={ErrorPage} />
+                        <Stack.Screen name={navs.home} component={ DashBoard }  initialParams={ { home: homeCode, user: userId } } /> 
+                        <Stack.Screen name={navs.callendar} component={ Callendar } />
+                        <Stack.Screen name={navs.remind} component={ RemindTemplate } />
+                        <Stack.Screen name={navs.shoppingList} component={ ShoppingList } />
+                        <Stack.Screen name={navs.tasks} component={ Tasks } />
+                        <Stack.Screen name={navs.error} component={ErrorPage} />
                     </>    :
                     <>
                         <Stack.Screen name={navs.welcome} component={ Welcome } />
@@ -118,8 +148,6 @@ export default function Routes() {
                         <Stack.Screen name={navs.register} component={ Register } />
                     </>
                 }       
-                {console.log(logged)}
-              
         </Stack.Navigator>
         </LoginContext.Provider>   
 

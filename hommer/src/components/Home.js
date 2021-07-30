@@ -1,31 +1,36 @@
 import { useNavigation } from '@react-navigation/native';
-import React, {useEffect} from 'react'
+import React, { Children } from 'react'
 import { View } from 'react-native';
-import { navs } from './../other/navigation';
-import { server } from './../other/vars';
-import { routes } from './../other/routes';
-import axios from 'axios';
+import { AsyncStorage } from '@react-native-async-storage/async-storage';
+import { storageKey } from '../other/vars';
+import { useState, useEffect } from 'react';
+import { LoginContext } from '../../App';
+import WelcomeHome from './WelcomeHome';
+import { storageHome } from './../other/vars';
+import DashBoard from './DashBoard';
+
+
 
 export default function Home({children}) {
-    const navigation = useNavigation()
-
-    // useEffect(() => {
-    //     axios.get(`${server}/${routes.isLogged}`)
-    //     .then( res => {
-    //         if( !res.data ){
-    //             // navigation.navigate( navs.welcome )
-    //             console.log(res.data)
-    //         }
-    //     } )
-    //     .catch(err => {
-    //         navigation.navigate( navs.error )
-    //     })
-    // })
 
     return (
-        <View>
-            {children}
-        </View>
+        <LoginContext.Consumer>
+            {({ homeCode}) => {
+             console.log(homeCode)
+             if( homeCode !== null ){
+                    return(
+                        <View>
+                            {children}
+                        </View>
+                    )
+                }else{
+                    return(
+                        <WelcomeHome/>
+                    )
+                }
+            }
+            }
+        </LoginContext.Consumer>
     )
 }
 // else{

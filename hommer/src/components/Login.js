@@ -8,12 +8,12 @@ export default function Login() {
     const [login, setLogin] = React.useState('')
     const [ password, setPassword ] = React.useState('')
 
-    // useEffect(() => {
-    //     return() => {
-    //         setLogin('')
-    //         setPassword('')
-    //     }
-    // }, [])
+    useEffect(() => {
+        return() => {
+            setLogin('')
+            setPassword('')
+        }
+    }, [])
 
     return (
         
